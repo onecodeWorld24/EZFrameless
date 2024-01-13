@@ -3,7 +3,9 @@
 #include <QIcon>
 #include <QPainter>
 #include <QPainterPath>
+#include <QScreen>
 #include <QStyle>
+#include <QWindow>
 
 #include <windows.h>
 //
@@ -14,12 +16,17 @@
 EZFrameless::EZFrameless(QWidget *parent)
     : QWidget{parent}
     , m_titlebar(new EZTitlebar(this))
-    , m_bResizeable(false)
+    , m_bResizeable(true)
 {
     setWindowFlags(windowFlags() | Qt::Window | Qt::FramelessWindowHint | Qt::WindowSystemMenuHint);
 
     setResizeable(m_bResizeable);
     setMinimumSize(400, 500);
+
+    connect(windowHandle(), &QWindow::screenChanged, this, [=] {
+        auto hWnd = reinterpret_cast<HWND>(windowHandle()->winId());
+        SetWindowPos(hWnd, NULL, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_FRAMECHANGED);
+    });
 }
 
 void EZFrameless::setResizeable(bool resizeable)
@@ -31,7 +38,7 @@ void EZFrameless::setResizeable(bool resizeable)
         ::SetWindowLong(hwnd, GWL_STYLE, style | WS_THICKFRAME | WS_CAPTION | WS_MAXIMIZEBOX);
         m_titlebar->setTitleButtonFlag(EZTitlebar::kMinMaxClose);
     } else {
-        ::SetWindowLong(hwnd, GWL_STYLE, style & ~WS_MAXIMIZEBOX | WS_CAPTION);
+        ::SetWindowLong(hwnd, GWL_STYLE, (style & ~WS_MAXIMIZEBOX) | WS_CAPTION);
         m_titlebar->setTitleButtonFlag(EZTitlebar::kClose);
     }
 
@@ -58,6 +65,7 @@ bool EZFrameless::nativeEvent(const QByteArray &eventType, void *message, long *
     case WM_NCCALCSIZE: {
         const auto clientRect = msg->wParam == FALSE ? reinterpret_cast<LPRECT>(msg->lParam)
                                                      : &(reinterpret_cast<LPNCCALCSIZE_PARAMS>(msg->lParam))->rgrc[0];
+        m_widgetRect = QRect(0, 0, clientRect->right - clientRect->left, clientRect->bottom - clientRect->top);
         // To resolve the issue of abnormal refresh of the right border when horizontally stretching the window.
         if (clientRect->top != 0)
             clientRect->top -= 1;
@@ -81,7 +89,7 @@ bool EZFrameless::nativeEvent(const QByteArray &eventType, void *message, long *
         *result = WVR_REDRAW;
         return true;
     } break;
-    case WM_NCHITTEST: { // 鼠标悬浮消息
+    case WM_NCHITTEST: {
         *result = 0;
         long x = GET_X_LPARAM(msg->lParam);
         long y = GET_Y_LPARAM(msg->lParam);
@@ -98,57 +106,53 @@ bool EZFrameless::nativeEvent(const QByteArray &eventType, void *message, long *
 
             if (bResizeWidth) {
                 // left border
-                if (pt.x() >= rect().left() && pt.x() < rect().left() + borderWidth)
+                if (pt.x() >= m_widgetRect.left() && pt.x() < m_widgetRect.left() + borderWidth)
                     *result = HTLEFT;
                 // right border
-                if (pt.x() < rect().right() && pt.x() >= rect().right() - borderWidth)
+                if (pt.x() < m_widgetRect.right() && pt.x() >= m_widgetRect.right() - borderWidth)
                     *result = HTRIGHT;
             }
             if (bResizeHeight) {
                 // top border
-                if (pt.y() >= rect().top() && pt.y() < rect().top() + borderWidth)
+                if (pt.y() >= m_widgetRect.top() && pt.y() < m_widgetRect.top() + borderWidth)
                     *result = HTTOP;
                 // bottom border
-                if (pt.y() < rect().bottom() && pt.y() >= rect().bottom() - borderWidth)
+                if (pt.y() < m_widgetRect.bottom() && pt.y() >= m_widgetRect.bottom() - borderWidth)
                     *result = HTBOTTOM;
             }
             if (bResizeWidth && bResizeHeight) {
                 // left top corner
-                if (pt.x() >= rect().left() && pt.x() < rect().left() + borderWidth && pt.y() >= rect().top()
-                    && pt.y() < rect().top() + borderWidth) {
+                if (pt.x() >= m_widgetRect.left() && pt.x() < m_widgetRect.left() + borderWidth
+                    && pt.y() >= m_widgetRect.top() && pt.y() < m_widgetRect.top() + borderWidth) {
                     *result = HTTOPLEFT;
                 }
                 // right top corner
-                if (pt.x() < rect().right() && pt.x() >= rect().right() - borderWidth && pt.y() >= rect().top()
-                    && pt.y() < rect().top() + borderWidth) {
+                if (pt.x() < m_widgetRect.right() && pt.x() >= m_widgetRect.right() - borderWidth
+                    && pt.y() >= m_widgetRect.top() && pt.y() < m_widgetRect.top() + borderWidth) {
                     *result = HTTOPRIGHT;
                 }
                 // right bottom corner
-                if (pt.x() < rect().right() && pt.x() >= rect().right() - borderWidth && pt.y() < rect().bottom()
-                    && pt.y() >= rect().bottom() - borderWidth) {
+                if (pt.x() < m_widgetRect.right() && pt.x() >= m_widgetRect.right() - borderWidth
+                    && pt.y() < m_widgetRect.bottom() && pt.y() >= m_widgetRect.bottom() - borderWidth) {
                     *result = HTBOTTOMRIGHT;
                 }
                 // left bottom corner
-                if (pt.x() >= rect().left() && pt.x() < rect().left() + borderWidth && pt.y() < rect().bottom()
-                    && pt.y() >= rect().bottom() - borderWidth) {
+                if (pt.x() >= m_widgetRect.left() && pt.x() < m_widgetRect.left() + borderWidth
+                    && pt.y() < m_widgetRect.bottom() && pt.y() >= m_widgetRect.bottom() - borderWidth) {
                     *result = HTBOTTOMLEFT;
                 }
             }
         }
         if (0 != *result)
             return true;
-
-        QPoint qtScenePos = QPointF(QPointF(pt / this->devicePixelRatio())).toPoint();
-        int    ret = m_titlebar->getInsideSystemBtns(pt);
-        if (ret == HTCLIENT)
-            return QWidget::nativeEvent(eventType, message, result);
-        else {
+        int ret = m_titlebar->getInsideSystemBtns(pt);
+        if (ret != HTCLIENT) {
             *result = ret;
             return true;
         }
     } break;
     default:
-        return QWidget::nativeEvent(eventType, message, result);
         break;
     }
+    return QWidget::nativeEvent(eventType, message, result);
 }

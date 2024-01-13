@@ -1,4 +1,4 @@
-﻿#ifndef SIMPLEFRAMELESS_H
+#ifndef SIMPLEFRAMELESS_H
 #define SIMPLEFRAMELESS_H
 
 #include "EZTitlebar.h"
@@ -29,6 +29,8 @@ private:
     bool        m_bResizeable;
     QMargins    m_margins;
     QMargins    m_frames;
+
+    QRect m_widgetRect;
 };
 
 #endif // SIMPLEFRAMELESS_H
