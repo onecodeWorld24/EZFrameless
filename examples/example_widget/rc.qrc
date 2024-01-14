@@ -1,0 +1,7 @@
+<RCC>
+    <qresource prefix="/">
+        <file>rc/logo.ico</file>
+        <file>rc/style.qss</file>
+        <file>rc/font/iconfont.ttf</file>
+    </qresource>
+</RCC>

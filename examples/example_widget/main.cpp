@@ -1,18 +1,33 @@
+#include "FontManager.h"
+#include "IconFont.h"
 #include "widget.h"
 
 #include <QApplication>
+#include <QFile>
+
+bool loadStyleSheet(QApplication &a)
+{
+    QFile   file(":/rc/style.qss");
+    QString styleSheet = "";
+    if (file.open(QFile::ReadOnly)) {
+        styleSheet = QLatin1String(file.readAll());
+
+        a.setStyleSheet(styleSheet);
+        file.close();
+        return true;
+    }
+    return false;
+}
 
 int main(int argc, char *argv[])
 {
-#if 1
     QApplication a(argc, argv);
-    Widget       w;
+    qutils::FontManager::instance()->addThirdpartyFont(":rc/font/iconfont.ttf", FontStyle::kCustomIconFont);
+
+    if (!loadStyleSheet(a))
+        return 0;
+    Widget w;
     w.show();
-#else
-    QApplication::setAttribute(Qt::AA_EnableHighDpiScaling);
-    QApplication a(argc, argv);
-    MainWindow   w;
-    w.show();
-#endif
+
     return a.exec();
 }

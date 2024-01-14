@@ -1,0 +1,27 @@
+QWidget {
+    background-color: #353535;
+}
+
+#sysTitlebar {
+    background-color: #2d2d30;
+    border: none;
+}
+
+#sysTitleLabel {
+    background: transparent;
+    color: #8e8e8e;
+}
+
+#sysHelpBtn, #sysMinimizeBtn, #sysMaximizeBtn, #sysCloseBtn {
+    border: none;
+    background: transparent;
+    color: #818183;
+}
+#sysHelpBtn:hover, #sysMinimizeBtn:hover, #sysMaximizeBtn:hover {
+    background-color: #3f3f41;
+    color: white;
+}
+#sysCloseBtn:hover {
+    background-color: #e81123;
+    color: white;
+}

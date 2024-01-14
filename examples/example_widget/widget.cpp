@@ -1,22 +1,20 @@
 #include "widget.h"
+#include "FontManager.h"
+#include "IconFont.h"
 
 Widget::Widget(QWidget *parent)
     : EZFrameless(parent)
 {
     setResizeable(true);
-
-    QWidget *leftWidget = new QWidget();
-    leftWidget->setObjectName("w1");
-    leftWidget->setMinimumSize(20, 20);
-    QWidget *rightWidget = new QWidget();
-    rightWidget->setObjectName("w2");
-    rightWidget->setMinimumWidth(20);
-    setLeftWidget(leftWidget);
-    setRightWidget(rightWidget);
-
-    setStyleSheet("#titlebar { background-color: black; }"
-                  "QWidget#w1 { background-color: red; }"
-                  "QWidget#w2 { background-color: yellow; }");
+    setTitleText("frameless_widget");
+    setSystemLogo(":/rc/logo.ico");
+    setSystemButtonStyle(EZTitlebar::kCustomIconFontStyle,
+                         qutils::FontManager::instance()->fontAt(FontStyle::kCustomIconFont),
+                         FONT_CLOSE,
+                         FONT_MINIMIZE,
+                         FONT_MAXIMIZE,
+                         FONT_RESTORE,
+                         FONT_HELP);
 }
 
 Widget::~Widget() {}
