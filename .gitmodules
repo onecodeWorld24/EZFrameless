@@ -1,0 +1,3 @@
+[submodule "qutils"]
+	path = qutils
+	url = git@github.com:onecodeWorld24/qutils.git
