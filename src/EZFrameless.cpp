@@ -15,12 +15,12 @@
 
 EZFrameless::EZFrameless(QWidget *parent)
     : QWidget{parent}
-    , m_titlebar(new EZTitlebar(this))
-    , m_bResizeable(true)
+    , d_ptr(new EZFramelessPrivate(this))
 {
-    setWindowFlags(windowFlags() | Qt::Window | Qt::FramelessWindowHint | Qt::WindowSystemMenuHint);
+    Q_D(EZFrameless);
+    setWindowFlags(windowFlags() | Qt::FramelessWindowHint | Qt::WindowSystemMenuHint);
 
-    setResizeable(m_bResizeable);
+    setResizeable(d->m_bResizeable);
     setMinimumSize(400, 500);
 
     connect(windowHandle(), &QWindow::screenChanged, this, [=] {
@@ -31,15 +31,16 @@ EZFrameless::EZFrameless(QWidget *parent)
 
 void EZFrameless::setResizeable(bool resizeable)
 {
-    m_bResizeable = resizeable;
+    Q_D(EZFrameless);
+    d->m_bResizeable = resizeable;
     HWND  hwnd = (HWND) this->winId();
     DWORD style = ::GetWindowLong(hwnd, GWL_STYLE);
-    if (m_bResizeable) {
+    if (d->m_bResizeable) {
         ::SetWindowLong(hwnd, GWL_STYLE, style | WS_THICKFRAME | WS_CAPTION | WS_MAXIMIZEBOX);
-        m_titlebar->setTitleButtonFlag(EZTitlebar::kMinMaxClose);
+        d->m_titlebar->setTitleButtonFlag(EZTitlebar::kMinMaxClose);
     } else {
         ::SetWindowLong(hwnd, GWL_STYLE, (style & ~WS_MAXIMIZEBOX) | WS_CAPTION);
-        m_titlebar->setTitleButtonFlag(EZTitlebar::kClose);
+        d->m_titlebar->setTitleButtonFlag(EZTitlebar::kClose);
     }
 
     const int     num = 4;
@@ -49,23 +50,56 @@ void EZFrameless::setResizeable(bool resizeable)
 
 void EZFrameless::setTitleText(const QString &text)
 {
-    m_titlebar->setTitleText(text);
+    Q_D(EZFrameless);
+    d->m_titlebar->setTitleText(text);
 }
 
 QString EZFrameless::getTitleText()
 {
-    return m_titlebar->getTitleText();
+    Q_D(EZFrameless);
+    return d->m_titlebar->getTitleText();
+}
+
+void EZFrameless::setSystemLogo(const QString &iconPath)
+{
+    Q_D(EZFrameless);
+    d->m_titlebar->setSystemLogo(iconPath);
+}
+
+void EZFrameless::setTitleAlignment(Qt::Alignment alignment)
+{
+    Q_D(EZFrameless);
+    d->m_titlebar->setTitleAlignment(alignment);
+}
+
+void EZFrameless::setTitleButtonFlag(EZTitlebar::SysButton btnFlag)
+{
+    Q_D(EZFrameless);
+    d->m_titlebar->setTitleButtonFlag(btnFlag);
+}
+
+void EZFrameless::setSystemButtonStyle(EZTitlebar::SysButtonStyle style,
+                                       const QFont               &font,
+                                       QChar                      closeIcon,
+                                       QChar                      minIcon,
+                                       QChar                      maxIcon,
+                                       QChar                      restoreIcon,
+                                       QChar                      helpIcon)
+{
+    Q_D(EZFrameless);
+    d->m_titlebar->setSystemButtonStyle(style, font, closeIcon, minIcon, maxIcon, restoreIcon, helpIcon);
 }
 
 bool EZFrameless::nativeEvent(const QByteArray &eventType, void *message, long *result)
 {
+    Q_D(EZFrameless);
     MSG *msg = reinterpret_cast<MSG *>(message);
     switch (msg->message) {
     // To manage the layout and size of the non-client area of a window (i.e., the window's borders, title bar, etc.).
     case WM_NCCALCSIZE: {
         const auto clientRect = msg->wParam == FALSE ? reinterpret_cast<LPRECT>(msg->lParam)
                                                      : &(reinterpret_cast<LPNCCALCSIZE_PARAMS>(msg->lParam))->rgrc[0];
-        m_widgetRect = QRect(0, 0, clientRect->right - clientRect->left, clientRect->bottom - clientRect->top);
+        d->m_widgetRect = QRect(0, 0, clientRect->right - clientRect->left, clientRect->bottom - clientRect->top);
         // To resolve the issue of abnormal refresh of the right border when horizontally stretching the window.
         if (clientRect->top != 0)
             clientRect->top -= 1;
@@ -77,15 +111,15 @@ bool EZFrameless::nativeEvent(const QByteArray &eventType, void *message, long *
             clientRect->right -= borderOutside;
             clientRect->top += borderOutside;
             clientRect->bottom -= borderOutside;
-            m_titlebar->setMaximizeBtnStatus(true);
+            d->m_titlebar->setMaximizeBtnStatus(true);
         } else
-            m_titlebar->setMaximizeBtnStatus(false);
+            d->m_titlebar->setMaximizeBtnStatus(false);
 
         // Customize the title bar to resize dynamically with changes in the window size.
         //  The reason for using move(0, 1) is that when the mouse hovers over the buttons on the title bar,
         //  the upper boundary of the button's hover state exceeds the boundary of the client area by 1px.
-        m_titlebar->move(0, 1);
-        m_titlebar->setFixedSize(clientRect->right - clientRect->left, 28);
+        d->m_titlebar->move(0, 1);
+        d->m_titlebar->setFixedSize(clientRect->right - clientRect->left, 28);
         *result = WVR_REDRAW;
         return true;
     } break;
@@ -100,52 +134,52 @@ bool EZFrameless::nativeEvent(const QByteArray &eventType, void *message, long *
 
         const int borderWidth = 5;
 
-        if (m_bResizeable) {
+        if (d->m_bResizeable) {
             bool bResizeWidth = minimumWidth() != maximumWidth();
             bool bResizeHeight = minimumHeight() != maximumHeight();
 
             if (bResizeWidth) {
                 // left border
-                if (pt.x() >= m_widgetRect.left() && pt.x() < m_widgetRect.left() + borderWidth)
+                if (pt.x() >= d->m_widgetRect.left() && pt.x() < d->m_widgetRect.left() + borderWidth)
                     *result = HTLEFT;
                 // right border
-                if (pt.x() < m_widgetRect.right() && pt.x() >= m_widgetRect.right() - borderWidth)
+                if (pt.x() < d->m_widgetRect.right() && pt.x() >= d->m_widgetRect.right() - borderWidth)
                     *result = HTRIGHT;
             }
             if (bResizeHeight) {
                 // top border
-                if (pt.y() >= m_widgetRect.top() && pt.y() < m_widgetRect.top() + borderWidth)
+                if (pt.y() >= d->m_widgetRect.top() && pt.y() < d->m_widgetRect.top() + borderWidth)
                     *result = HTTOP;
                 // bottom border
-                if (pt.y() < m_widgetRect.bottom() && pt.y() >= m_widgetRect.bottom() - borderWidth)
+                if (pt.y() < d->m_widgetRect.bottom() && pt.y() >= d->m_widgetRect.bottom() - borderWidth)
                     *result = HTBOTTOM;
             }
             if (bResizeWidth && bResizeHeight) {
                 // left top corner
-                if (pt.x() >= m_widgetRect.left() && pt.x() < m_widgetRect.left() + borderWidth
-                    && pt.y() >= m_widgetRect.top() && pt.y() < m_widgetRect.top() + borderWidth) {
+                if (pt.x() >= d->m_widgetRect.left() && pt.x() < d->m_widgetRect.left() + borderWidth
+                    && pt.y() >= d->m_widgetRect.top() && pt.y() < d->m_widgetRect.top() + borderWidth) {
                     *result = HTTOPLEFT;
                 }
                 // right top corner
-                if (pt.x() < m_widgetRect.right() && pt.x() >= m_widgetRect.right() - borderWidth
-                    && pt.y() >= m_widgetRect.top() && pt.y() < m_widgetRect.top() + borderWidth) {
+                if (pt.x() < d->m_widgetRect.right() && pt.x() >= d->m_widgetRect.right() - borderWidth
+                    && pt.y() >= d->m_widgetRect.top() && pt.y() < d->m_widgetRect.top() + borderWidth) {
                     *result = HTTOPRIGHT;
                 }
                 // right bottom corner
-                if (pt.x() < m_widgetRect.right() && pt.x() >= m_widgetRect.right() - borderWidth
-                    && pt.y() < m_widgetRect.bottom() && pt.y() >= m_widgetRect.bottom() - borderWidth) {
+                if (pt.x() < d->m_widgetRect.right() && pt.x() >= d->m_widgetRect.right() - borderWidth
+                    && pt.y() < d->m_widgetRect.bottom() && pt.y() >= d->m_widgetRect.bottom() - borderWidth) {
                     *result = HTBOTTOMRIGHT;
                 }
                 // left bottom corner
-                if (pt.x() >= m_widgetRect.left() && pt.x() < m_widgetRect.left() + borderWidth
-                    && pt.y() < m_widgetRect.bottom() && pt.y() >= m_widgetRect.bottom() - borderWidth) {
+                if (pt.x() >= d->m_widgetRect.left() && pt.x() < d->m_widgetRect.left() + borderWidth
+                    && pt.y() < d->m_widgetRect.bottom() && pt.y() >= d->m_widgetRect.bottom() - borderWidth) {
                     *result = HTBOTTOMLEFT;
                 }
             }
         }
         if (0 != *result)
             return true;
-        int ret = m_titlebar->getInsideSystemBtns(pt);
+        int ret = d->m_titlebar->getInsideSystemBtns(pt);
         if (ret != HTCLIENT) {
             *result = ret;
             return true;

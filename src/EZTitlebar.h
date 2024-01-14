@@ -5,6 +5,7 @@
 #include <QHBoxLayout>
 #include <QLabel>
 #include <QPushButton>
+#include <QVariant>
 #include <QWidget>
 
 /**
@@ -38,21 +39,26 @@ public:
         kMinMaxClose = kMinimize | kMaximize | kClose,
         kAll = kHelp | kMinMaxClose
     };
+    enum SysButtonStyle { kSystemStyle = 0, kCustomIconFontStyle };
+
     explicit EZTitlebar(QWidget *parent = nullptr);
     ~EZTitlebar();
 
     void    setTitleText(const QString &text);
     QString getTitleText();
 
+    void setSystemLogo(const QString &iconPath);
+
     void setTitleAlignment(Qt::Alignment alignment);
     void setTitleButtonFlag(SysButton btnFlag);
-    void setLeftWidget(QWidget *leftWidget);
-    void setRightWidget(QWidget *rightWidget);
 
-    void setMinimizeBtnIcon(const QIcon &icon, const QChar &);
-    void setMaximizeBtnIcon(const QIcon &icon);
-    void setNormalBtnIcon(const QIcon &icon);
-    void setCloseBtnIcon(const QIcon &icon);
+    void setSystemButtonStyle(SysButtonStyle style = SysButtonStyle::kSystemStyle,
+                              const QFont   &font = QFont(),
+                              QChar          closeIcon = QChar(),
+                              QChar          minIcon = QChar(),
+                              QChar          maxIcon = QChar(),
+                              QChar          restoreIcon = QChar(),
+                              QChar          helpIcon = QChar());
 
     void setMaximizeBtnStatus(bool isMaximize);
     void setCloseEventCallback(const CallbackFun &func);
@@ -61,8 +67,9 @@ public:
 
 protected:
     void initLayout();
-
     void initConnect();
+
+    void updateSysButtonIcon();
 
 private:
     EZTitlebarPrivate *d_ptr;
@@ -72,18 +79,26 @@ private:
 class EZTitlebarPrivate
 {
 public:
+    int  m_titleHeight{25};
+    bool m_isMaximized{false};
+
+    EZTitlebar::SysButtonStyle m_sysButtonStyle;
+
     QHBoxLayout *m_hLayout{nullptr};
+    QLabel      *m_logoLabel{nullptr};
     QLabel      *m_titleLabel{nullptr};
-    QWidget     *m_leftWidgetPlaceholder{nullptr};
-    QWidget     *m_rightWidgetPlaceholder{nullptr};
     QPushButton *m_helpBtn{nullptr};
     QPushButton *m_minimizeBtn{nullptr};
     QPushButton *m_maximizeBtn{nullptr};
     QPushButton *m_closeBtn{nullptr};
-    QIcon        m_closeIcon;
-    QIcon        m_minimizeIcon;
-    QIcon        m_maximizeIcon;
-    QIcon        m_normalIcon;
+
+    // Button icon
+    QVariant m_closeIcon;
+    QVariant m_minimizeIcon;
+    QVariant m_maximizeIcon;
+    QVariant m_restoreIcon;
+    QVariant m_helpIcon;
+
     // The callback function for the close button event:
     // The close button by default calls the close() function of the parent window object.
     // The event function can be overridden through the callback function.
