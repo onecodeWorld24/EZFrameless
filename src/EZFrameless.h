@@ -1,7 +1,7 @@
 #ifndef SIMPLEFRAMELESS_H
 #define SIMPLEFRAMELESS_H
 
-#include "EZTitlebar.h"
+#include "EZTitleBarBase.h"
 
 #include <QWidget>
 
@@ -15,21 +15,7 @@ public:
 
     void setResizeable(bool resizeable = true);
 
-    void    setTitleText(const QString &text);
-    QString getTitleText();
-
-    void setSystemLogo(const QString &iconPath);
-
-    void setTitleAlignment(Qt::Alignment alignment);
-    void setTitleButtonFlag(EZTitlebar::SysButton btnFlag);
-
-    void setSystemButtonStyle(EZTitlebar::SysButtonStyle style = EZTitlebar::SysButtonStyle::kSystemStyle,
-                              const QFont               &font = QFont(),
-                              QChar                      closeIcon = QChar(),
-                              QChar                      minIcon = QChar(),
-                              QChar                      maxIcon = QChar(),
-                              QChar                      restoreIcon = QChar(),
-                              QChar                      helpIcon = QChar());
+    void setTitlebarWidget(EZTitleBarBase *widget);
 
 protected:
     bool nativeEvent(const QByteArray &eventType, void *message, long *result) override;
@@ -43,14 +29,14 @@ class EZFramelessPrivate
 {
 public:
     EZFramelessPrivate(QWidget *parent)
-        : m_titlebar(new EZTitlebar(parent))
+        : m_titlebar(new EZTitleBarBase(parent))
     {}
 
-    EZTitlebar *m_titlebar;
-    bool        m_bResizeable{true};
-    QMargins    m_margins;
-    QMargins    m_frames;
-    QRect       m_widgetRect;
+    EZTitleBarBase *m_titlebar;
+    bool            m_bResizeable{true};
+    QMargins        m_margins;
+    QMargins        m_frames;
+    QRect           m_widgetRect;
 };
 
 #endif // SIMPLEFRAMELESS_H

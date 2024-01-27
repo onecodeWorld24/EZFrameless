@@ -10,8 +10,7 @@ find_package(Qt5 COMPONENTS Widgets REQUIRED)
 set(SOURCE_FILES
     EZFrameless.h
     EZFrameless.cpp
-    EZTitlebar.h
-    EZTitlebar.cpp
+    EZTitleBarBase.h
 )
 
 add_library(EZFramless ${SOURCE_FILES})
