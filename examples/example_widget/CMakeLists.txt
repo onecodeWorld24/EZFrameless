@@ -27,8 +27,7 @@ set(EXAMPLE_WIDGET
 set(SRC_FILE_LIST
     ../../src/EZFrameless.h
     ../../src/EZFrameless.cpp
-    ../../src/EZTitlebar.h
-    ../../src/EZTitlebar.cpp
+    ../../src/EZTitleBarBase.h
 )
 
 set(UTILS_FILE_LIST

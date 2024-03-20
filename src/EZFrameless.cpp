@@ -49,7 +49,8 @@ void EZFrameless::setResizeable(bool resizeable)
 void EZFrameless::setTitlebarWidget(EZTitleBarBase *widget)
 {
     Q_D(EZFrameless);
-    d->m_titlebar = widget;
+    if (widget)
+        d->m_titlebar = widget;
 }
 
 bool EZFrameless::nativeEvent(const QByteArray &eventType, void *message, long *result)
@@ -59,13 +60,9 @@ bool EZFrameless::nativeEvent(const QByteArray &eventType, void *message, long *
     switch (msg->message) {
     // To manage the layout and size of the non-client area of a window (i.e., the window's borders, title bar, etc.).
     case WM_NCCALCSIZE: {
-        const auto clientRect = msg->wParam == FALSE
-                                    ? reinterpret_cast<LPRECT>(msg->lParam)
-                                    : &(reinterpret_cast<LPNCCALCSIZE_PARAMS>(msg->lParam))->rgrc[0];
-        d->m_widgetRect = QRect(0,
-                                0,
-                                clientRect->right - clientRect->left,
-                                clientRect->bottom - clientRect->top);
+        const auto clientRect = msg->wParam == FALSE ? reinterpret_cast<LPRECT>(msg->lParam)
+                                                     : &(reinterpret_cast<LPNCCALCSIZE_PARAMS>(msg->lParam))->rgrc[0];
+        d->m_widgetRect = QRect(0, 0, clientRect->right - clientRect->left, clientRect->bottom - clientRect->top);
         // To resolve the issue of abnormal refresh of the right border when horizontally stretching the window.
         if (clientRect->top != 0)
             clientRect->top -= 1;
@@ -78,6 +75,10 @@ bool EZFrameless::nativeEvent(const QByteArray &eventType, void *message, long *
             clientRect->top += borderOutside;
             clientRect->bottom -= borderOutside;
         }
+
+        d->m_titlebar->move(0, 1);
+        d->m_titlebar->setFixedWidth(clientRect->right - clientRect->left);
+
         *result = WVR_REDRAW;
         return true;
     } break;
@@ -98,12 +99,10 @@ bool EZFrameless::nativeEvent(const QByteArray &eventType, void *message, long *
 
             if (bResizeWidth) {
                 // left border
-                if (pt.x() >= d->m_widgetRect.left()
-                    && pt.x() < d->m_widgetRect.left() + borderWidth)
+                if (pt.x() >= d->m_widgetRect.left() && pt.x() < d->m_widgetRect.left() + borderWidth)
                     *result = HTLEFT;
                 // right border
-                if (pt.x() < d->m_widgetRect.right()
-                    && pt.x() >= d->m_widgetRect.right() - borderWidth)
+                if (pt.x() < d->m_widgetRect.right() && pt.x() >= d->m_widgetRect.right() - borderWidth)
                     *result = HTRIGHT;
             }
             if (bResizeHeight) {
@@ -111,37 +110,28 @@ bool EZFrameless::nativeEvent(const QByteArray &eventType, void *message, long *
                 if (pt.y() >= d->m_widgetRect.top() && pt.y() < d->m_widgetRect.top() + borderWidth)
                     *result = HTTOP;
                 // bottom border
-                if (pt.y() < d->m_widgetRect.bottom()
-                    && pt.y() >= d->m_widgetRect.bottom() - borderWidth)
+                if (pt.y() < d->m_widgetRect.bottom() && pt.y() >= d->m_widgetRect.bottom() - borderWidth)
                     *result = HTBOTTOM;
             }
             if (bResizeWidth && bResizeHeight) {
                 // left top corner
-                if (pt.x() >= d->m_widgetRect.left()
-                    && pt.x() < d->m_widgetRect.left() + borderWidth
-                    && pt.y() >= d->m_widgetRect.top()
-                    && pt.y() < d->m_widgetRect.top() + borderWidth) {
+                if (pt.x() >= d->m_widgetRect.left() && pt.x() < d->m_widgetRect.left() + borderWidth
+                    && pt.y() >= d->m_widgetRect.top() && pt.y() < d->m_widgetRect.top() + borderWidth) {
                     *result = HTTOPLEFT;
                 }
                 // right top corner
-                if (pt.x() < d->m_widgetRect.right()
-                    && pt.x() >= d->m_widgetRect.right() - borderWidth
-                    && pt.y() >= d->m_widgetRect.top()
-                    && pt.y() < d->m_widgetRect.top() + borderWidth) {
+                if (pt.x() < d->m_widgetRect.right() && pt.x() >= d->m_widgetRect.right() - borderWidth
+                    && pt.y() >= d->m_widgetRect.top() && pt.y() < d->m_widgetRect.top() + borderWidth) {
                     *result = HTTOPRIGHT;
                 }
                 // right bottom corner
-                if (pt.x() < d->m_widgetRect.right()
-                    && pt.x() >= d->m_widgetRect.right() - borderWidth
-                    && pt.y() < d->m_widgetRect.bottom()
-                    && pt.y() >= d->m_widgetRect.bottom() - borderWidth) {
+                if (pt.x() < d->m_widgetRect.right() && pt.x() >= d->m_widgetRect.right() - borderWidth
+                    && pt.y() < d->m_widgetRect.bottom() && pt.y() >= d->m_widgetRect.bottom() - borderWidth) {
                     *result = HTBOTTOMRIGHT;
                 }
                 // left bottom corner
-                if (pt.x() >= d->m_widgetRect.left()
-                    && pt.x() < d->m_widgetRect.left() + borderWidth
-                    && pt.y() < d->m_widgetRect.bottom()
-                    && pt.y() >= d->m_widgetRect.bottom() - borderWidth) {
+                if (pt.x() >= d->m_widgetRect.left() && pt.x() < d->m_widgetRect.left() + borderWidth
+                    && pt.y() < d->m_widgetRect.bottom() && pt.y() >= d->m_widgetRect.bottom() - borderWidth) {
                     *result = HTBOTTOMLEFT;
                 }
             }
