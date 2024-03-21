@@ -16,7 +16,6 @@ public:
 
     virtual bool isMovableArea(const QPoint &pt)
     {
-        qDebug() << __FUNCTION__ << pt;
         if (rect().contains(mapFromParent(pt)))
             return true;
         else
