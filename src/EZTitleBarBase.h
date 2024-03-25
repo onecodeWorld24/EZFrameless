@@ -1,6 +1,7 @@
 #ifndef EZTITLEBARBASE_H
 #define EZTITLEBARBASE_H
 
+#include <QApplication>
 #include <QDebug>
 #include <QWidget>
 
@@ -21,6 +22,26 @@ public:
         else
             return false;
     }
+
+public slots:
+    virtual void onClosedClicked() { qApp->quit(); }
+    virtual void onMinimizedClicked()
+    {
+        if (parentWidget())
+            parentWidget()->showMinimized();
+    }
+    virtual void onMaximizedClicked()
+    {
+        if (parentWidget())
+            if (parentWidget()->isMaximized())
+                parentWidget()->showNormal();
+            else
+                parentWidget()->showMaximized();
+    }
+    virtual void onSettingClicked() {}
+
+    virtual void onMaximized() {}
+    virtual void onNormaled() {}
 };
 
 #endif // EZTITLEBARBASE_H
